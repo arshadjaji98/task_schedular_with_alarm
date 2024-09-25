@@ -404,7 +404,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const PopupMenuItem<String>(
           value: 'delete',
-          child: Text('Delete'),
+          child: Text('delete'),
         ),
       ],
     );
