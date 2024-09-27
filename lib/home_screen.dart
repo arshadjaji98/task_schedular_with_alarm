@@ -1,6 +1,10 @@
+// ignore: file_names
+// ignore: file_names
+// ignore_for_file: use_build_context_synchronously, file_names, duplicate_ignore
 import 'package:alarm_desktop_app/alarm_setup.dart';
 import 'package:alarm_desktop_app/components/dialog.dart';
 import 'package:alarm_desktop_app/provider/task_provider.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -134,7 +138,9 @@ class _HomeScreenState extends State<HomeScreen> {
       time.minute,
     );
 
-    print('Scheduling alarm for: $alarmDateTime');
+    if (kDebugMode) {
+      print('Scheduling alarm for: $alarmDateTime');
+    }
 
     await AndroidAlarmManager.oneShotAt(
       alarmDateTime,
@@ -142,22 +148,24 @@ class _HomeScreenState extends State<HomeScreen> {
       alarmCallback,
       exact: true,
       wakeup: true,
-      alarmClock: true, // Optional: for showing in alarm clock app
-      rescheduleOnReboot: true, // Optional: reschedule alarms on reboot
+      alarmClock: true,
+      rescheduleOnReboot: true,
     );
   }
 
-  // Changed to instance method
   void alarmCallback() async {
-    print('Alarm callback triggered!');
+    if (kDebugMode) {
+      print('Alarm callback triggered!');
+    }
 
     try {
       AudioPlayer audioPlayer = AudioPlayer();
-      await audioPlayer.setSource(
-          AssetSource('assets/$selectedSound')); // Use the selected sound
-      await audioPlayer.resume(); // or play(), depending on your version
+      await audioPlayer.setSource(AssetSource('assets/$selectedSound'));
+      await audioPlayer.resume();
     } catch (e) {
-      print('Error playing sound: $e');
+      if (kDebugMode) {
+        print('Error playing sound: $e');
+      }
     }
   }
 
@@ -192,12 +200,12 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Select Alarm Sound'),
+          title: const Text('Select Alarm Sound'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                title: Text('Default Sound'),
+                title: const Text('Default Sound'),
                 onTap: () {
                   setState(() {
                     selectedSound = 'default_sound.mp3'; // Default sound
@@ -206,7 +214,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
               ),
               ListTile(
-                title: Text('Custom Sound 1'),
+                title: const Text('Custom Sound 1'),
                 onTap: () {
                   setState(() {
                     selectedSound = 'custom_sound_1.mp3'; // A predefined sound
@@ -215,7 +223,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
               ),
               ListTile(
-                title: Text('Pick from File Manager'),
+                title: const Text('Pick from File Manager'),
                 onTap: () async {
                   // Open the AlarmSoundPicker and wait for the sound to be selected
                   await Navigator.of(context).push(
@@ -254,7 +262,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.music_note),
+            icon: const Icon(Icons.music_note),
             onPressed: () =>
                 _selectSound(context), // Allow user to select sound
           ),
@@ -278,7 +286,8 @@ class _HomeScreenState extends State<HomeScreen> {
       BuildContext context, TaskProvider taskProvider) {
     return Container(
       padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(boxShadow: [BoxShadow(color: Colors.white)]),
+      decoration:
+          const BoxDecoration(boxShadow: [BoxShadow(color: Colors.white)]),
       child: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Column(
@@ -289,17 +298,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 Text(
                   taskProvider.selectedDate == null
                       ? "Select a Date"
-                      : '${DateFormat.yMd().format(taskProvider.selectedDate!)}',
+                      : DateFormat.yMd().format(taskProvider.selectedDate!),
                   style: const TextStyle(fontSize: 18),
                 ),
                 ElevatedButton(
                   onPressed: () => selectDate(context),
-                  child: const Text("Select Date"),
                   style: ElevatedButton.styleFrom(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     textStyle: const TextStyle(fontSize: 12),
                   ),
+                  child: const Text("Select Date"),
                 ),
               ],
             ),
@@ -315,12 +324,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () => selectTime(context),
-                  child: Text("Select Time"),
                   style: ElevatedButton.styleFrom(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     textStyle: const TextStyle(fontSize: 12),
                   ),
+                  child: const Text("Select Time"),
                 ),
               ],
             ),
@@ -339,12 +348,11 @@ class _HomeScreenState extends State<HomeScreen> {
         },
         decoration: InputDecoration(
           labelText: "Enter Task Name",
-          border: OutlineInputBorder(),
+          border: const OutlineInputBorder(),
           suffixIcon: IconButton(
             icon: const Icon(Icons.clear),
             onPressed: () {
               taskController.clear();
-              taskProvider.setTaskName('');
             },
           ),
         ),
@@ -355,8 +363,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildAddTaskButton(BuildContext context) {
     return ElevatedButton(
       onPressed: () => addTask(context),
-      child: const Text("Add a Task"),
       style: ElevatedButton.styleFrom(),
+      child: const Text("Add a Task"),
     );
   }
 
