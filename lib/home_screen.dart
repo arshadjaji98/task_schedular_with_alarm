@@ -1,3 +1,4 @@
+import 'package:alarm_desktop_app/alarm_setup.dart';
 import 'package:alarm_desktop_app/components/dialog.dart';
 import 'package:alarm_desktop_app/provider/task_provider.dart';
 import 'package:flutter/material.dart';
@@ -10,9 +11,10 @@ import 'components/toast_message.dart';
 import 'package:audioplayers/audioplayers.dart';
 
 class HomeScreen extends StatefulWidget {
-  HomeScreen({super.key});
+  const HomeScreen({super.key});
 
   @override
+  // ignore: library_private_types_in_public_api
   _HomeScreenState createState() => _HomeScreenState();
 }
 
@@ -123,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void scheduleAlarm(DateTime date, TimeOfDay time) async {
-    final int alarmId = tasks.length; // Unique ID for each alarm
+    final int alarmId = tasks.length;
     final DateTime alarmDateTime = DateTime(
       date.year,
       date.month,
@@ -132,20 +134,31 @@ class _HomeScreenState extends State<HomeScreen> {
       time.minute,
     );
 
+    print('Scheduling alarm for: $alarmDateTime');
+
     await AndroidAlarmManager.oneShotAt(
       alarmDateTime,
       alarmId,
       alarmCallback,
       exact: true,
       wakeup: true,
+      alarmClock: true, // Optional: for showing in alarm clock app
+      rescheduleOnReboot: true, // Optional: reschedule alarms on reboot
     );
   }
 
-  static void alarmCallback() {
-    print('Alarm rang! Time to do your task!');
+  // Changed to instance method
+  void alarmCallback() async {
+    print('Alarm callback triggered!');
 
-    AudioPlayer audioPlayer = AudioPlayer();
-    audioPlayer.play(AssetSource('assets/default_sound.mp3'));
+    try {
+      AudioPlayer audioPlayer = AudioPlayer();
+      await audioPlayer.setSource(
+          AssetSource('assets/$selectedSound')); // Use the selected sound
+      await audioPlayer.resume(); // or play(), depending on your version
+    } catch (e) {
+      print('Error playing sound: $e');
+    }
   }
 
   void editTask(BuildContext context, int index) {
@@ -187,7 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 title: Text('Default Sound'),
                 onTap: () {
                   setState(() {
-                    selectedSound = 'default_sound.mp3';
+                    selectedSound = 'default_sound.mp3'; // Default sound
                   });
                   Navigator.of(context).pop();
                 },
@@ -196,9 +209,27 @@ class _HomeScreenState extends State<HomeScreen> {
                 title: Text('Custom Sound 1'),
                 onTap: () {
                   setState(() {
-                    selectedSound = 'custom_sound_1.mp3';
+                    selectedSound = 'custom_sound_1.mp3'; // A predefined sound
                   });
                   Navigator.of(context).pop();
+                },
+              ),
+              ListTile(
+                title: Text('Pick from File Manager'),
+                onTap: () async {
+                  // Open the AlarmSoundPicker and wait for the sound to be selected
+                  await Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => AlarmSoundPicker(
+                        onSoundSelected: (soundPath) {
+                          setState(() {
+                            selectedSound =
+                                soundPath; // Store selected sound path
+                          });
+                        },
+                      ),
+                    ),
+                  );
                 },
               ),
             ],
@@ -279,7 +310,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Text(
                   taskProvider.selectedTime == null
                       ? "Select a Time"
-                      : '${taskProvider.selectedTime!.format(context)}',
+                      : '${taskProvider.selectedTime!.hour}:${taskProvider.selectedTime!.minute}',
                   style: const TextStyle(fontSize: 18),
                 ),
                 ElevatedButton(
@@ -300,40 +331,32 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildTaskInputField(TaskProvider taskProvider) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-          color: Colors.white, borderRadius: BorderRadius.circular(8)),
-      child: TextFormField(
+    return Card(
+      child: TextField(
         controller: taskController,
         onChanged: (value) {
           taskProvider.setTaskName(value);
         },
-        decoration: const InputDecoration(
-          labelText: 'Enter Task',
+        decoration: InputDecoration(
+          labelText: "Enter Task Name",
           border: OutlineInputBorder(),
+          suffixIcon: IconButton(
+            icon: const Icon(Icons.clear),
+            onPressed: () {
+              taskController.clear();
+              taskProvider.setTaskName('');
+            },
+          ),
         ),
       ),
     );
   }
 
   Widget _buildAddTaskButton(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        ElevatedButton(
-          onPressed: () => addTask(context),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.black,
-          ),
-          child: const Text("Add a Task"),
-        ),
-        IconButton(
-            onPressed: () {
-              deleteAllTasks();
-            },
-            icon: Icon(Icons.delete_forever))
-      ],
+    return ElevatedButton(
+      onPressed: () => addTask(context),
+      child: const Text("Add a Task"),
+      style: ElevatedButton.styleFrom(),
     );
   }
 
@@ -343,70 +366,34 @@ class _HomeScreenState extends State<HomeScreen> {
         itemCount: tasks.length,
         itemBuilder: (context, index) {
           final task = tasks[index];
-          return Container(
-            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.3),
-                  blurRadius: 5,
-                  spreadRadius: 1,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      task['name'],
-                      style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${DateFormat.yMd().format(task['date'])} at ${task['time'].format(context)}',
-                      style: const TextStyle(fontSize: 14, color: Colors.grey),
-                    ),
-                  ],
-                ),
-                _buildTaskMenu(context, index),
-              ],
+          return Card(
+            child: ListTile(
+              title: Text(task['name']),
+              subtitle: Text(
+                  'Date: ${DateFormat.yMd().format(task['date'])} - Time: ${task['time'].hour}:${task['time'].minute}'),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: () => editTask(context, index),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete),
+                    onPressed: () {
+                      setState(() {
+                        tasks.removeAt(index);
+                        saveTasks();
+                      });
+                      ToastHelper.showToast('Task deleted successfully!');
+                    },
+                  ),
+                ],
+              ),
             ),
           );
         },
       ),
-    );
-  }
-
-  Widget _buildTaskMenu(BuildContext context, int index) {
-    return PopupMenuButton<String>(
-      onSelected: (String value) {
-        if (value == 'edit') {
-          editTask(context, index);
-        } else if (value == 'delete') {
-          setState(() {
-            tasks.removeAt(index);
-          });
-          ToastHelper.showToast('Task deleted!');
-        }
-      },
-      itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-        const PopupMenuItem<String>(
-          value: 'edit',
-          child: Text('Edit'),
-        ),
-        const PopupMenuItem<String>(
-          value: 'delete',
-          child: Text('delete'),
-        ),
-      ],
     );
   }
 }

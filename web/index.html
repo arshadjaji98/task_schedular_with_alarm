@@ -31,6 +31,9 @@
 
   <title>alarm_desktop_app</title>
   <link rel="manifest" href="manifest.json">
+  
+  <!-- Add this for accessing assets on web -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self'">
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>

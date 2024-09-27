@@ -10,10 +10,7 @@ void main() async {
   runApp(const MyApp());
 }
 
-// Define the callback function that will be triggered when the alarm goes off
 void alarmCallback() {
-  // Play your alarm sound here
-  // You may need to use a package like 'audioplayers' to play a sound
   print("Alarm triggered!");
 }
 
